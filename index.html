@@ -41,6 +41,8 @@
             text-align: center;
             box-shadow: 0 4px 10px rgba(0,0,0,0.1);
             color: white;
+            position: relative;
+            z-index: 10;
         }
 
         header h1 { font-size: 22px; font-weight: bold; }
@@ -58,6 +60,8 @@
             margin: 15px 0 5px 0;
             width: 95%;
             max-width: 950px;
+            position: relative;
+            z-index: 10;
         }
 
         .color-palette-container {
@@ -68,12 +72,28 @@
             max-width: 950px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.06);
             margin-bottom: 15px;
+            position: relative;
+            z-index: 10;
         }
 
-        .palette-title { font-size: 13px; font-weight: bold; color: #546E7A; text-align: right; margin-bottom: 5px; }
-        .colors-grid { display: grid; grid-template-columns: repeat(21, 1fr); gap: 4px; }
-        .color-block { aspect-ratio: 1; border-radius: 6px; cursor: pointer; border: 1px solid rgba(0,0,0,0.15); }
-        .color-block.active-color { transform: scale(1.2); border: 2px solid #000000; box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
+        .palette-title { font-size: 13px; font-weight: bold; color: #546E7A; text-align: right; margin-bottom: 8px; }
+        
+        /* تحسين شبكة الألوان لتظهر بوضوح تام وتكون قابلة للضغط بسهولة */
+        .colors-grid { 
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px; 
+            justify-content: center;
+        }
+        .color-block { 
+            width: 28px;
+            height: 28px;
+            border-radius: 6px; 
+            cursor: pointer; 
+            border: 1px solid rgba(0,0,0,0.25); 
+            display: inline-block;
+        }
+        .color-block.active-color { transform: scale(1.2); border: 2.5px solid #000000; box-shadow: 0 2px 6px rgba(0,0,0,0.4); }
 
         .btn {
             background-color: var(--light);
@@ -110,16 +130,12 @@
             box-shadow: 0 15px 35px rgba(0,0,0,0.2);
             border-radius: 12px;
             overflow: hidden;
-            display: flex;
-            justify-content: center;
-            align-items: center;
         }
 
         .page-content-wrapper { 
             position: relative; 
             width: 100%; 
-            height: auto;
-            display: inline-block;
+            display: block;
         }
 
         .page-img { 
@@ -127,16 +143,18 @@
             height: auto; 
             display: block;
             pointer-events: none; 
-            z-index: 1; 
+            user-select: none;
+            -webkit-user-drag: none;
         }
 
+        /* الكانفاس فوق الصورة تماماً ومستعد لاستقبال التلوين واللمس */
         .drawing-canvas { 
             position: absolute; 
             top: 0; 
             left: 0; 
             width: 100%; 
             height: 100%; 
-            z-index: 2; 
+            z-index: 5; 
             cursor: crosshair; 
             touch-action: none; 
             background: transparent;
@@ -148,7 +166,7 @@
             font-size: 24px; font-weight: bold; color: var(--primary); cursor: pointer; z-index: 20; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
         }
         .arrow-left { left: 0px; } .arrow-right { right: 0px; }
-        .status-footer { margin-top: 15px; font-size: 14px; font-weight: bold; color: #37474F; background: white; padding: 6px 15px; border-radius: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .status-footer { margin-top: 15px; font-size: 14px; font-weight: bold; color: #37474F; background: white; padding: 6px 15px; border-radius: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); z-index: 10; }
     </style>
 </head>
 <body>
@@ -218,15 +236,15 @@
                 const block = document.createElement('div');
                 block.className = 'color-block' + (color === '#000000' ? ' active-color' : '');
                 block.style.backgroundColor = color;
-                block.addEventListener('click', () => { changeColor(color, block); });
-                block.addEventListener('touchstart', (e) => { changeColor(color, block); e.preventDefault(); }, {passive: false});
+                block.onclick = function(e) { changeColor(color, block); };
                 box.appendChild(block);
             });
         }
 
         function resizeCanvas() {
-            canvas.width = pageImg.clientWidth || canvas.offsetWidth;
-            canvas.height = pageImg.clientHeight || canvas.offsetHeight;
+            // أخذ المقاس الفعلي للصورة المعروضة بدقة ليتطابق التلوين
+            canvas.width = pageImg.getBoundingClientRect().width || pageImg.clientWidth;
+            canvas.height = pageImg.getBoundingClientRect().height || pageImg.clientHeight;
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
             loadCanvasData();
@@ -251,19 +269,34 @@
             ctx.lineTo(cx, cy - outerRadius); ctx.closePath(); ctx.fillStyle = currentColor; ctx.fill();
         }
 
-        canvas.addEventListener('mousedown', (e) => { startDraw(e.offsetX, e.offsetY); });
-        canvas.addEventListener('mousemove', (e) => { doDraw(e.offsetX, e.offsetY); });
+        // حساب الإحداثيات الصحيحة للمس فوق الكانفاس بدون تداخل
+        function getPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            if (e.touches && e.touches.length > 0) {
+                return { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top };
+            }
+            return { x: e.offsetX, y: e.offsetY };
+        }
+
+        canvas.addEventListener('mousedown', (e) => { 
+            const pos = getPos(e);
+            startDraw(pos.x, pos.y); 
+        });
+        canvas.addEventListener('mousemove', (e) => { 
+            const pos = getPos(e);
+            doDraw(pos.x, pos.y); 
+        });
         canvas.addEventListener('mouseup', stopDraw);
 
         canvas.addEventListener('touchstart', (e) => {
-            const rect = canvas.getBoundingClientRect(); const touch = e.touches[0];
-            startDraw(touch.clientX - rect.left, touch.clientY - rect.top);
+            const pos = getPos(e);
+            startDraw(pos.x, pos.y);
             e.preventDefault();
         }, {passive: false});
 
         canvas.addEventListener('touchmove', (e) => {
-            const rect = canvas.getBoundingClientRect(); const touch = e.touches[0];
-            doDraw(touch.clientX - rect.left, touch.clientY - rect.top);
+            const pos = getPos(e);
+            doDraw(pos.x, pos.y);
             e.preventDefault();
         }, {passive: false});
 
@@ -319,7 +352,7 @@
 
         function toggleAudio() {
             if (audio.paused) {
-                audio.play().catch(err => console.log("تفاعل مطلوب أولاً"));
+                audio.play().catch(err => console.log("التفاعل مطلوب أولاً"));
                 audioBtn.textContent = "⏸️ إيقاف الأنشودة";
             } else {
                 audio.pause(); audioBtn.textContent = "🎵 تشغيل الأنشودة";

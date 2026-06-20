@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>بصمتي الصغيرة - نسخة الآيباد والهاتف</title>
+    <title>بصمتي الصغيرة - نسخة الآيباد المعتمدة</title>
     <style>
         :root {
             --primary: #4A90E2;
@@ -18,7 +18,7 @@
             -webkit-user-select: none;
             margin: 0;
             padding: 0;
-            touch-action: none; /* يمنع اهتزاز الشاشة أثناء التلوين بالآيباد */
+            touch-action: none;
         }
 
         body {
@@ -45,7 +45,6 @@
         header h1 { font-size: 20px; font-weight: bold; }
         header p { font-size: 12px; opacity: 0.9; }
 
-        /* شريط أدوات مرن ومتناسق مع شاشات الهواتف والآيباد */
         .toolbar {
             background-color: rgba(255, 255, 255, 0.95);
             border-radius: 12px;
@@ -59,6 +58,7 @@
             margin: 10px 0;
             width: 95%;
             max-width: 600px;
+            z-index: 100;
         }
 
         .btn {
@@ -96,7 +96,6 @@
             background: none;
         }
 
-        /* حاوية العرض المستقيمة تماماً المناسبة للمس */
         .scene-container {
             width: 90%;
             max-width: 400px; 
@@ -131,6 +130,7 @@
             object-fit: fill;
             pointer-events: none;
             position: absolute;
+            background-color: #FFF;
         }
 
         .book-spine-line {
@@ -168,11 +168,10 @@
 
     <header>
         <h1>بصمتي الصغيرة 📖✨</h1>
-        <p>نسخة الهاتف والآيباد المحدثة - اسحبي لتقليب الصفحات ولوّني باللمس</p>
+        <p>تصميم مستقيم ونظيف - اسحبي لتقليب الصفحات ولوّني باللمس</p>
     </header>
 
-    <!-- التأكد من كتابة اسم أنشودتك بشكل صحيح هنا -->
-    <audio id="bg-audio" src="alphabet-song.mp3" loop></audio>
+    <audio id="bg-audio" src="song.mp3" loop></audio>
 
     <div class="toolbar">
         <button class="btn active" id="tool-pencil" onclick="setTool('pencil')">✏️ بنسل</button>
@@ -192,7 +191,6 @@
         <div class="flat-book" id="book-element">
             <div class="book-spine-line"></div>
             <div class="page-content-wrapper">
-                <!-- تنبيه مهم: تأكدي أن امتداد الصور في مجلدك هو png بحروف صغيرة -->
                 <img id="current-page-img" src="page1.png" class="page-img" alt="صفحة الكتاب">
                 <canvas id="main-canvas" class="drawing-canvas"></canvas>
             </div>
@@ -227,18 +225,18 @@
             canvas.height = canvas.parentElement.clientHeight;
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
-            loadCanvasData();
-        }
-
-        function updateBookPage() {
-            // تحويل اسم الصفحة برمجياً ليتوافق مع الملفات المرفوعة
-            pageImg.src = page${currentPage}.png;
-            document.getElementById('page-indicator').textContent = الصفحة الحالية: ${currentPage} من ${totalPages};
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             loadCanvasData();
         }
 
-        // --- دعم أحداث اللمس للأجهزة الذكية والآيباد بالكامل ---
+        function updateBookPage() {
+            pageImg.src = page${currentPage}.png;
+            document.getElementById('page-indicator').textContent = الصفحة الحالية: ${currentPage} من ${totalPages};
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            setTimeout(loadCanvasData, 50);
+        }
+
+        // دعم اللمس للآيباد والهواتف بالكامل وبدقة عالية
         canvas.addEventListener('touchstart', (e) => {
             isDrawing = true;
             const coords = getCoords(e, true);
@@ -258,8 +256,8 @@
                 const diffX = e.touches[0].clientX - touchStartX;
                 const diffY = e.touches[0].clientY - touchStartY;
 
-                // إذا قام الطفل بسحب أفقي طويل يتم تقليب الصفحة فوراً
-                if (Math.abs(diffX) > 90 && Math.abs(diffY) < 40) {
+                // سحب الشاشة يميناً ويساراً لتقليب الصفحات على الآيباد والهاتف
+                if (Math.abs(diffX) > 70 && Math.abs(diffY) < 40) {
                     isDrawing = false;
                     if (diffX < 0) nextPage(); else prevPage();
                     return;
@@ -271,7 +269,7 @@
 
         canvas.addEventListener('touchend', () => { isDrawing = false; saveCanvasData(); });
 
-        // --- دعم الماوس للكمبيوتر احتياطاً ---
+        // دعم الماوس للكمبيوتر
         canvas.addEventListener('mousedown', (e) => { isDrawing = true; const coords = getCoords(e, false); lastX = coords.x; lastY = coords.y; });
         canvas.addEventListener('mousemove', (e) => { if (isDrawing) { const coords = getCoords(e, false); drawOnCanvas(coords.x, coords.y); } });
         canvas.addEventListener('mouseup', () => { isDrawing = false; saveCanvasData(); });
@@ -294,9 +292,7 @@
             lastX = x; lastY = y;
         }
 
-        function saveCanvasData() {
-            savedDrawings[currentPage] = canvas.toDataURL();
-        }
+        function saveCanvasData() { savedDrawings[currentPage] = canvas.toDataURL(); }
 
         function loadCanvasData() {
             if (savedDrawings[currentPage]) {
@@ -336,8 +332,8 @@
 
         function toggleAudio() {
             if (audio.paused) {
-                audio.play().then(() => { audioBtn.textContent = "⏸️ إيقاف الأنشودة"; })
-                .catch(() => { alert("اضغطي على الشاشة أولاً لتنشيط الصوت في متصفح الآيباد!"); });
+                audio.play().then(() => { audioBtn.textContent = "⏸️ الإيقاف"; })
+                .catch(() => { alert("اضغطي أولاً في أي مكان داخل الكتاب لتنشيط المتصفح ثم شغلي الصوت!"); });
             } else {
                 audio.pause(); audioBtn.textContent = "🎵 الأنشودة";
             }
